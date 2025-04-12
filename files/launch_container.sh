@@ -16,8 +16,8 @@ function InputVNCPassword() {
 	fi
 }
 
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_20.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_20.04_nvidia_for_${USER}"
 
 # Make Container
 if [ ! "$(docker image ls -q ${NAME_IMAGE})" ]; then

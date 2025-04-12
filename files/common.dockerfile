@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 # Ubuntu release versions 22.04, 20.04, and 18.04 are supported
-ARG UBUNTU_RELEASE=22.04
+ARG UBUNTU_RELEASE=20.04
 ARG CUDA_VERSION=11.7.1
 FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_RELEASE}
 
@@ -232,7 +232,6 @@ RUN apt-get update && apt-get install -y \
         kdeconnect \
         kde-spectacle \
         kde-config-screenlocker \
-        kde-config-updates \
         kdf \
         kget \
         kgpg \
@@ -268,6 +267,7 @@ RUN apt-get update && apt-get install -y \
         xdg-desktop-portal-kde \
         kubuntu-restricted-extras \
         kubuntu-wallpapers \
+        kubuntu-desktop \
         pavucontrol-qt \
         transmission-qt && \
     apt-get install --install-recommends -y \
@@ -409,11 +409,11 @@ RUN apt-get update && apt-get install -y \
         libdbus-1-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# install ROS2 Humble
+# install ROS2 Foxy
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 RUN apt-get update && apt-get install -y \
-    ros-humble-desktop-full \
+    ros-foxy-desktop \
     ros-dev-tools
 
 # install colcon and rosdep
@@ -444,27 +444,29 @@ RUN apt-get update
 RUN apt build-dep pulseaudio -y
 RUN cd /tmp && apt source pulseaudio && ln -s /tmp/pulseaudio-1* /tmp/pulseaudio-src
 
-RUN cd /tmp/pulseaudio-1* && meson build && meson compile -C build ; exit 0 
-RUN cd /tmp/pulseaudio-1* && build/src/daemon/pulseaudio -n -F build/src/daemon/default.pa -p $(pwd)/build/src/; exit 0 
+RUN cd /tmp && apt source pulseaudio && ln -s /tmp/pulseaudio-1* /tmp/pulseaudio-src
 
-RUN cd /tmp && git clone https://github.com/neutrinolabs/pulseaudio-module-xrdp.git && cd pulseaudio-module-xrdp 
-#     scripts/install_pulseaudio_sources_apt_wrapper.sh; exit 0 
+RUN cd /tmp/pulseaudio-src && \
+    ./configure && \
+    make -j$(nproc)
+
+RUN cd /tmp && git clone https://github.com/neutrinolabs/pulseaudio-module-xrdp.git
 RUN apt install -y sudo lsb-release
 RUN cd /tmp/pulseaudio-module-xrdp && \
     ./bootstrap && \
-    ./configure PULSE_DIR=/tmp/pulseaudio-src/ && \
+    ./configure PULSE_DIR=/tmp/pulseaudio-src PULSE_CONFIG_DIR=/tmp/pulseaudio-src && \
     make install
 RUN total_lines=$(wc -l < /etc/xrdp/startwm.sh) && insert_line=$((total_lines - 2)) && sed -i "${insert_line}i /bin/bash -c '/usr/bin/pulseaudio --start'" /etc/xrdp/startwm.sh
 RUN rm /etc/apt/sources.list
 RUN mv /etc/apt/sources.list.org /etc/apt/sources.list 
-
+    
 # Copy scripts and configurations used to start the container
 COPY entrypoint.sh /etc/entrypoint.sh
 RUN chmod 755 /etc/entrypoint.sh
 COPY supervisord.conf /etc/supervisord.conf
 RUN chmod 755 /etc/supervisord.conf
 
-
+RUN apt autoremove -y
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

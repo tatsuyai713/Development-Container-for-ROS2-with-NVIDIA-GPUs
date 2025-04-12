@@ -1,5 +1,5 @@
 
-FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:v0.011
+FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:20.04
 
 ARG IN_LOCALE="JP"
 ARG IN_TZ="Asia/Tokyo"
@@ -56,7 +56,6 @@ ENV LANG ${IN_LANG}
 ENV LANGUAGE ${IN_LANGUAGE}
 
 USER $USERNAME
-RUN mkdir /home/${USERNAME}/.config/
 RUN touch /home/${USERNAME}/.config/user-dirs.dirs
 RUN if [ "${IN_LOCALE}" = "JP" ]; then \
     { \
