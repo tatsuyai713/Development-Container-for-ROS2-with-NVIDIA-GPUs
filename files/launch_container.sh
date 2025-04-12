@@ -6,11 +6,11 @@ cd $SCRIPT_DIR
 RESOLUTION_W="1920"
 RESOLUTION_H="1080"
 
-function InputVNCPassword() {
-	echo "Please input VNC Password."
+function InputPassword() {
+	echo "Please input User Password."
 	read input
 	if [ -z $input ]; then
-		InputVNCPassword
+		InputPassword
 	else
 		VNC_PASSWORD=$input
 	fi
@@ -163,11 +163,11 @@ CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE}: | awk '{print $1}')
 if [ ! "$CONTAINER_ID" ]; then
 	if [ ! $# -ne 1 ]; then
 		if [ "novnc" = $1 ]; then
-			InputVNCPassword
+			InputPassword
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-it -e PASSWD=${VNC_PASSWORD} -e BASIC_AUTH_PASSWORD=${VNC_PASSWORD} \
+				-it -e PASSWD=${VNC_PASSWORD} \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
@@ -190,7 +190,7 @@ if [ ! "$CONTAINER_ID" ]; then
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-e PASSWD=${VNC_PASSWORD} -e BASIC_AUTH_PASSWORD=${VNC_PASSWORD} \
+				-e PASSWD=${VNC_PASSWORD} \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
@@ -216,7 +216,7 @@ if [ ! "$CONTAINER_ID" ]; then
 			fi
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-e PASSWD=${VNC_PASSWORD} -e BASIC_AUTH_PASSWORD=${VNC_PASSWORD} \
+				-e PASSWD=${VNC_PASSWORD} \
 				$GPU_OPT \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \

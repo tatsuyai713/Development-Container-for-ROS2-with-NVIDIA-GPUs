@@ -460,6 +460,28 @@ RUN total_lines=$(wc -l < /etc/xrdp/startwm.sh) && insert_line=$((total_lines - 
 RUN rm /etc/apt/sources.list
 RUN mv /etc/apt/sources.list.org /etc/apt/sources.list 
     
+
+RUN mkdir -p /run/xrdp
+RUN chown xrdp:xrdp /run/xrdp
+RUN chmod 755 /run/xrdp
+
+RUN chmod 640 /etc/xrdp/key.pem
+RUN chown root:xrdp /etc/xrdp/key.pem
+
+RUN awk 'BEGIN{keep=1} /^\[.*\]/{if($0~/^\[(Globals|Channels|Logging)\]/){keep=1}else{keep=0}} keep{print}' /etc/xrdp/xrdp.ini > /etc/xrdp/xrdp.ini.tmp && \
+    mv /etc/xrdp/xrdp.ini.tmp /etc/xrdp/xrdp.ini && \
+    echo "[xrdp1]" >> /etc/xrdp/xrdp.ini && \
+    echo "name=Plasma on Xvfb via x11vnc" >> /etc/xrdp/xrdp.ini && \
+    echo "lib=libvnc.so" >> /etc/xrdp/xrdp.ini && \
+    echo "ip=127.0.0.1" >> /etc/xrdp/xrdp.ini && \
+    echo "port=5900" >> /etc/xrdp/xrdp.ini && \
+    echo "username=na" >> /etc/xrdp/xrdp.ini && \
+    echo "password=na" >> /etc/xrdp/xrdp.ini
+
+RUN echo '#!/bin/sh' > /etc/xrdp/startwm.sh && \
+    echo '/usr/sbin/xrdp-chansrv &' >> /etc/xrdp/startwm.sh && \
+    chmod +x /etc/xrdp/startwm.sh
+
 # Copy scripts and configurations used to start the container
 COPY entrypoint.sh /etc/entrypoint.sh
 RUN chmod 755 /etc/entrypoint.sh
