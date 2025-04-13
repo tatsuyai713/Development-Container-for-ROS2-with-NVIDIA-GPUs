@@ -1,7 +1,7 @@
 #!/bin/bash
 
-NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_24.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_24.04_nvidia_for_${USER}"
 
 sudo apt install -y ansible
 

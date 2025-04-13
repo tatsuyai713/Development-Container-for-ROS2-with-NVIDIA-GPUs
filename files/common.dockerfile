@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-# Ubuntu release versions 22.04, 20.04, and 18.04 are supported
-ARG UBUNTU_RELEASE=22.04
-ARG CUDA_VERSION=11.7.1
+# Ubuntu release versions 24.04, 20.04, and 18.04 are supported
+ARG UBUNTU_RELEASE=24.04
+ARG CUDA_VERSION=12.5.1
 FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_RELEASE}
 
 LABEL maintainer "https://github.com/ehfd,https://github.com/danisla"
@@ -83,7 +83,6 @@ RUN dpkg --add-architecture i386 && \
     python3-cups \
     python3-numpy \
     python3-pip \
-    mlocate \
     nano \
     vim \
     htop \
@@ -186,7 +185,10 @@ RUN VULKAN_API_VERSION=$(dpkg -s libvulkan1 | grep -oP 'Version: [0-9|\.]+' | gr
     \"api_version\" : \"${VULKAN_API_VERSION}\"\n\
     }\n\
     }" > /etc/vulkan/icd.d/nvidia_icd.json
+ 
+RUN wget http://launchpadlibrarian.net/674385008/libegl1-mesa_23.0.4-0ubuntu1~22.04.1_amd64.deb && dpkg -i libegl1-mesa_23.0.4-0ubuntu1~22.04.1_amd64.deb && rm libegl1-mesa_23.0.4-0ubuntu1~22.04.1_amd64.deb
 
+RUN dpkg --add-architecture i386 && apt update && wget http://launchpadlibrarian.net/674385095/libegl1-mesa_23.0.4-0ubuntu1~22.04.1_i386.deb && dpkg -i libegl1-mesa_23.0.4-0ubuntu1~22.04.1_i386.deb && rm libegl1-mesa_23.0.4-0ubuntu1~22.04.1_i386.deb
 # Install VirtualGL and make libraries available for preload
 ARG VIRTUALGL_URL="https://sourceforge.net/projects/virtualgl/files"
 RUN curl -fsSL -O "${VIRTUALGL_URL}/virtualgl_${VIRTUALGL_VERSION}_amd64.deb" && \
@@ -244,7 +246,6 @@ RUN apt-get update && apt-get install -y \
         kleopatra \
         kmail \
         kmenuedit \
-        kmix \
         knotes \
         kontact \
         kopete \
@@ -281,20 +282,27 @@ RUN apt-get update && apt-get install -y \
     cp -r /tmp/start_kdeinit /usr/lib/x86_64-linux-gnu/libexec/kf5/start_kdeinit && \
     rm -f /tmp/start_kdeinit
 
-RUN add-apt-repository ppa:mozillateam/ppa
+RUN apt-get purge -y firefox snapd
 
-RUN { \
-      echo 'Package: firefox*'; \
-      echo 'Pin: release o=LP-PPA-mozillateam'; \
-      echo 'Pin-Priority: 1001'; \
-      echo ' '; \
-      echo 'Package: firefox*'; \
-      echo 'Pin: release o=Ubuntu*'; \
-      echo 'Pin-Priority: -1'; \
-    } > /etc/apt/preferences.d/99mozilla-firefox
+RUN mkdir -p /etc/apt/keyrings && \
+    wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | \
+    gpg --dearmor > /etc/apt/keyrings/packages.mozilla.org.gpg
 
-RUN apt-get -y update \
- && apt-get install -y firefox
+RUN cat <<EOF > /etc/apt/sources.list.d/mozilla.sources
+Types: deb
+URIs: https://packages.mozilla.org/apt
+Suites: mozilla
+Components: main
+Signed-By: /etc/apt/keyrings/packages.mozilla.org.gpg
+EOF
+
+RUN cat <<EOF > /etc/apt/preferences.d/mozilla
+Package: firefox*
+Pin: origin packages.mozilla.org
+Pin-Priority: 1001
+EOF
+
+RUN apt-get update && apt-get install -y firefox
 
 # Wine, Winetricks, Lutris, and PlayOnLinux, this process must be consistent with https://wiki.winehq.org/Ubuntu
 ARG WINE_BRANCH=staging
@@ -345,7 +353,7 @@ RUN apt-get update && apt-get install -y \
     git clone https://github.com/tatsuyai713/noVNC.git -b add_clipboard_support /opt/noVNC && \
     ln -snf /opt/noVNC/vnc.html /opt/noVNC/index.html && \
     # Use the latest Websockify source to expose noVNC
-    pip3 install git+https://github.com/novnc/websockify.git@v0.10.0
+    pip3 install --break-system-packages git+https://github.com/novnc/websockify.git@v0.10.0
 
 
 # install package
@@ -410,11 +418,11 @@ RUN apt-get update && apt-get install -y \
         libdbus-1-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# install ROS2 Humble
+# install ROS2 Jazzy
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 RUN apt-get update && apt-get install -y \
-    ros-humble-desktop-full \
+    ros-jazzy-desktop-full \
     ros-dev-tools
 
 # install colcon and rosdep
@@ -441,13 +449,28 @@ RUN apt-mark hold xrdp
 RUN apt install -y git libpulse-dev autoconf m4 intltool build-essential dpkg-dev libtool libsndfile1-dev libspeexdsp-dev libudev-dev
 
 RUN cp /etc/apt/sources.list /etc/apt/sources.list.org
-RUN sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list
+RUN echo "deb-src http://archive.ubuntu.com/ubuntu jammy main" >> /etc/apt/sources.list && \
+    apt update && \
+    apt-get source pulseaudio
 RUN apt-get update
 
-RUN apt build-dep pulseaudio -y
+RUN apt-get update && apt-get install -y \
+    libasound2-dev libatomic-ops-dev libavahi-client-dev \
+    libbluetooth-dev libcap-dev libdbus-1-dev libfftw3-dev \
+    libglib2.0-dev libice-dev libjson-c-dev liborc-0.4-dev \
+    libpulse-dev libsbc-dev libsdl2-dev libsm-dev \
+    libsndfile1-dev libspeexdsp-dev libssl-dev libsystemd-dev \
+    libudev-dev libwebrtc-audio-processing-dev libx11-dev \
+    libxext-dev libxfixes-dev libxtst-dev intltool xmltoman \
+    doxygen gdb libtool autoconf automake m4 dh-autoreconf \
+    build-essential debhelper meson gettext libtdb-dev check
 RUN cd /tmp && apt source pulseaudio && ln -s /tmp/pulseaudio-1* /tmp/pulseaudio-src
 
-RUN cd /tmp/pulseaudio-1* && meson build && meson compile -C build ; exit 0 
+RUN sed -i '/module-snap-policy/d' /tmp/pulseaudio-src/src/modules/meson.build
+RUN cd /tmp/pulseaudio-1* && \
+    meson setup build && \
+    meson compile -C build && \
+    test -f build/config.h || (echo "❌ config.h not found" && exit 1)
 RUN cd /tmp/pulseaudio-1* && build/src/daemon/pulseaudio -n -F build/src/daemon/default.pa -p $(pwd)/build/src/; exit 0 
 
 RUN cd /tmp && git clone https://github.com/neutrinolabs/pulseaudio-module-xrdp.git && cd pulseaudio-module-xrdp 
@@ -455,7 +478,7 @@ RUN cd /tmp && git clone https://github.com/neutrinolabs/pulseaudio-module-xrdp.
 RUN apt install -y sudo lsb-release
 RUN cd /tmp/pulseaudio-module-xrdp && \
     ./bootstrap && \
-    ./configure PULSE_DIR=/tmp/pulseaudio-src/ && \
+    ./configure PULSE_DIR=/tmp/pulseaudio-src PULSE_CONFIG_DIR=/tmp/pulseaudio-src/build && \
     make install
 RUN total_lines=$(wc -l < /etc/xrdp/startwm.sh) && insert_line=$((total_lines - 2)) && sed -i "${insert_line}i /bin/bash -c '/usr/bin/pulseaudio --start'" /etc/xrdp/startwm.sh
 RUN rm /etc/apt/sources.list

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_24.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_24.04_nvidia_for_${USER}"
 
 echo "Build Container"
 
@@ -46,7 +46,7 @@ echo "_/  Please type 'test' as temporary password!!  _/"
 echo "_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/"
 ssh-copy-id -i ~/.ssh/id_rsa.pub $CONTAINER_IP
 
-ansible-playbook -i ${CONTAINER_IP}, ./ansible/docker.yml
+# ansible-playbook -i ${CONTAINER_IP}, ./ansible/docker.yml
 
 cd ./files/
 

@@ -39,8 +39,8 @@ function InputPassword() {
 	fi
 }
 
-NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_24.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_24.04_nvidia_for_${USER}"
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd $SCRIPT_DIR

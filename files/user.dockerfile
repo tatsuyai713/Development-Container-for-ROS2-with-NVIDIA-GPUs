@@ -1,5 +1,5 @@
 
-FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:22.04
+FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:24.04
 
 ARG IN_LOCALE="JP"
 ARG IN_TZ="Asia/Tokyo"
@@ -15,7 +15,14 @@ ARG NEW_HOSTNAME=${HOSTNAME}-Docker
 
 ARG USERNAME=$UNAME
 ARG HOME=/home/$USERNAME
-
+RUN uid=$UID && \
+    username=$(getent passwd "$uid" | cut -d: -f1) && \
+    if [ -n "$username" ]; then \
+        echo "Deleting user: $username (UID=$uid)" && \
+        userdel -r "$username"; \
+    else \
+        echo "No user found with UID=$uid, skipping."; \
+    fi
 RUN useradd -u $UID -m $USERNAME && \
     echo "$USERNAME:$USERNAME" | chpasswd && \
     usermod --shell /bin/bash $USERNAME && \
@@ -56,6 +63,7 @@ ENV LANG ${IN_LANG}
 ENV LANGUAGE ${IN_LANGUAGE}
 
 USER $USERNAME
+RUN mkdir -p /home/${USERNAME}/.config
 RUN touch /home/${USERNAME}/.config/user-dirs.dirs
 RUN if [ "${IN_LOCALE}" = "JP" ]; then \
     { \

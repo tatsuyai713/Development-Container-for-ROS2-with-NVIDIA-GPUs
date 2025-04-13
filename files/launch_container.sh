@@ -17,8 +17,8 @@ function InputPassword() {
 	fi
 }
 
-NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_24.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_24.04_nvidia_for_${USER}"
 
 # Make Container
 if [ ! "$(docker image ls -q ${NAME_IMAGE})" ]; then
