@@ -1,5 +1,5 @@
 
-FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:v0.03
+FROM ghcr.io/tatsuyai713/development-container-for-ros-2-with-nvidia-gpus:22.04
 
 ARG IN_LOCALE="JP"
 ARG IN_TZ="Asia/Tokyo"
@@ -132,19 +132,15 @@ RUN echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> /home/${USE
 
 COPY fix_chrome_browser.sh /home/${USERNAME}/fix_chrome_browser.sh
 
-RUN sudo gpasswd -a $USERNAME ssl-cert
-
 USER root
+
+RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/fix_chrome_browser.sh
 RUN chmod +x /home/${USERNAME}/fix_chrome_browser.sh
-RUN /home/${USERNAME}/fix_chrome_browser.sh
+RUN apt update
+RUN apt upgrade -y
 
-RUN echo "#!/bin/bash" > /usr/local/bin/setup_vncpasswd.sh
-RUN echo "vncpasswd -u $USER -w -r" >> /usr/local/bin/setup_vncpasswd.sh
-RUN chmod +x /usr/local/bin/setup_vncpasswd.sh
-
-RUN rm /etc/kasmvnc/kasmvnc.yaml
-COPY kasmvnc.yaml /etc/kasmvnc/kasmvnc.yaml
-
+# Fix chrome
+RUN sed -i -e "s#/usr/bin/google-chrome-stable#/usr/bin/google-chrome-stable --no-sandbox#g" /usr/share/applications/google-chrome.desktop
 
 # Enable ssh
 RUN systemctl enable ssh

@@ -33,9 +33,11 @@ ENV DPI 96
 ENV CDEPTH 24
 ENV VGL_DISPLAY egl
 ENV PASSWD mypasswd
+ENV NOVNC_ENABLE true
 
 # Set versions for components that should be manually checked before upgrading, other component versions are automatically determined by fetching the version online
 ARG VIRTUALGL_VERSION=3.1
+ARG NOVNC_VERSION=1.3.0
 
 RUN sed -i.bak -e "s%http://[^ ]\+%http://ftp.riken.go.jp/Linux/ubuntu/%g" /etc/apt/sources.list
 
@@ -266,6 +268,7 @@ RUN apt-get update && apt-get install -y \
         xdg-desktop-portal-kde \
         kubuntu-restricted-extras \
         kubuntu-wallpapers \
+        kubuntu-desktop \
         pavucontrol-qt \
         transmission-qt && \
     apt-get install --install-recommends -y \
@@ -311,11 +314,39 @@ RUN if [ "${UBUNTU_RELEASE}" \< "20.04" ]; then add-apt-repository -y ppa:cyberm
     chmod 755 /usr/bin/winetricks && \
     curl -fsSL -o /usr/share/bash-completion/completions/winetricks "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"
 
-# KasmVNC
-RUN wget https://github.com/kasmtech/KasmVNC/releases/download/v1.3.1/kasmvncserver_jammy_1.3.1_amd64.deb
-RUN apt update && apt install -y ./kasmvncserver_jammy_1.3.1_amd64.deb
-RUN rm ./kasmvncserver_jammy_1.3.1_amd64.deb && \
-    rm -rf /var/lib/apt/lists/*
+# Install the noVNC web interface and the latest x11vnc for fallback
+RUN apt-get update && apt-get install -y \
+        autoconf \
+        automake \
+        autotools-dev \
+        chrpath \
+        debhelper \
+        git \
+        jq \
+        python3 \
+        python3-numpy \
+        libc6-dev \
+        libcairo2-dev \
+        libjpeg-turbo8-dev \
+        libssl-dev \
+        libv4l-dev \
+        libvncserver-dev \
+        libtool-bin \
+        libxdamage-dev \
+        libxinerama-dev \
+        libxrandr-dev \
+        libxss-dev \
+        libxtst-dev \
+        libavahi-client-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Build the latest x11vnc source to avoid various errors
+    git clone "https://github.com/LibVNC/x11vnc.git" /tmp/x11vnc && \
+    cd /tmp/x11vnc && autoreconf -fi && ./configure && make install && cd / && rm -rf /tmp/* && \
+    git clone https://github.com/tatsuyai713/noVNC.git -b add_clipboard_support /opt/noVNC && \
+    ln -snf /opt/noVNC/vnc.html /opt/noVNC/index.html && \
+    # Use the latest Websockify source to expose noVNC
+    pip3 install git+https://github.com/novnc/websockify.git@v0.10.0
+
 
 # install package
 RUN apt-get update && apt-get install -y \
@@ -404,7 +435,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 RUN apt-get update && apt-get install -y nodejs
 
 # XRDP Setup
-RUN apt update && apt install -y xrdp
+COPY xrdp_0.9.17-2ubuntu2_amd64.deb /tmp/xrdp_0.9.17-2ubuntu2_amd64.deb
+RUN apt update && apt install -y /tmp/xrdp_0.9.17-2ubuntu2_amd64.deb
+RUN apt-mark hold xrdp
 RUN apt install -y git libpulse-dev autoconf m4 intltool build-essential dpkg-dev libtool libsndfile1-dev libspeexdsp-dev libudev-dev
 
 RUN cp /etc/apt/sources.list /etc/apt/sources.list.org
@@ -428,13 +461,39 @@ RUN total_lines=$(wc -l < /etc/xrdp/startwm.sh) && insert_line=$((total_lines - 
 RUN rm /etc/apt/sources.list
 RUN mv /etc/apt/sources.list.org /etc/apt/sources.list 
 
+RUN mkdir -p /run/xrdp
+RUN chown xrdp:xrdp /run/xrdp
+RUN chmod 755 /run/xrdp
+
+RUN chmod 640 /etc/xrdp/key.pem
+RUN chown root:xrdp /etc/xrdp/key.pem
+
+RUN adduser xrdp ssl-cert
+
+RUN awk 'BEGIN{keep=1} /^\[.*\]/{if($0~/^\[(Globals|Channels|Logging)\]/){keep=1}else{keep=0}} keep{print}' /etc/xrdp/xrdp.ini > /etc/xrdp/xrdp.ini.tmp && \
+    mv /etc/xrdp/xrdp.ini.tmp /etc/xrdp/xrdp.ini && \
+    echo "[xrdp1]" >> /etc/xrdp/xrdp.ini && \
+    echo "name=Plasma on Xvfb via x11vnc" >> /etc/xrdp/xrdp.ini && \
+    echo "lib=libvnc.so" >> /etc/xrdp/xrdp.ini && \
+    echo "ip=127.0.0.1" >> /etc/xrdp/xrdp.ini && \
+    echo "port=5900" >> /etc/xrdp/xrdp.ini && \
+    echo "username=na" >> /etc/xrdp/xrdp.ini && \
+    echo "password=na" >> /etc/xrdp/xrdp.ini
+
+RUN echo '#!/bin/sh' > /etc/xrdp/startwm.sh && \
+    echo '/usr/sbin/xrdp-chansrv &' >> /etc/xrdp/startwm.sh && \
+    chmod +x /etc/xrdp/startwm.sh
+
+RUN sed -i '/<head>/a <script>if (window.location.search === "" || window.location.search === "?") { window.location.replace(window.location.pathname + "?autoconnect=1&resize=scale"); }</script>' /opt/noVNC/vnc.html
+
+
 # Copy scripts and configurations used to start the container
 COPY entrypoint.sh /etc/entrypoint.sh
 RUN chmod 755 /etc/entrypoint.sh
 COPY supervisord.conf /etc/supervisord.conf
 RUN chmod 755 /etc/supervisord.conf
 
-
+RUN apt autoremove -y
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

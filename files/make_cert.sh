@@ -1,8 +1,4 @@
 #!/bin/bash
-
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-cd $SCRIPT_DIR
-
 # Navigate to home directory
 cd ~
 
@@ -10,8 +6,6 @@ cd ~
 rm -rf ssl
 mkdir ssl
 cd ssl
-
-cp $SCRIPT_DIR/subjectnames.txt .
 
 # Generate a 4096-bit RSA private key with AES256 encryption for the CA
 openssl genrsa -aes256 -out privkey_cert.key 4096
@@ -29,5 +23,8 @@ openssl req -new -key privkey_withpasswd.key -out server.csr
 openssl rsa -in privkey_withpasswd.key -out server.key
 
 # Generate a server certificate (server.crt) using the CA certificate, valid for 2 years
-openssl x509 -req -in server.csr -CA cacert.pem -CAkey privkey_cert.key -CAcreateserial -extfile ./subjectnames.txt -days 730 -out server.crt
+openssl x509 -req -in server.csr -CA cacert.pem -CAkey privkey_cert.key -CAcreateserial -extfile ../subjectnames.txt -days 730 -out server.crt
 
+# Move back to the parent directory and move the ssl directory to the home directory
+cd ..
+mv -f ./ssl ~/

@@ -1,21 +1,21 @@
 #!/bin/bash
 
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
 
 sudo apt install -y ansible
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-cd $SCRIPT_DIR
 
 if [ ! "$(docker image ls -q ${NAME_IMAGE})" ]; then
 	echo "Docker image not found."
 	exit
 fi
 
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+cd $SCRIPT_DIR
 echo "Update Container"
 cd ./files
 
-nohup ./launch_container.sh vnc test none > /tmp/nohup_${USER}.out 2>&1 &
+nohup ./launch_container.sh novnc test none > /tmp/nohup_${USER}.out 2>&1 &
 
 echo "Please wait..."
 cd ../

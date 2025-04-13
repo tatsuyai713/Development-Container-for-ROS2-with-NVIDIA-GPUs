@@ -3,22 +3,22 @@
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd $SCRIPT_DIR
 
-
 RESOLUTION_W="1920"
 RESOLUTION_H="1080"
 
 function InputPassword() {
 	echo "Please input User Password."
-	read input
-	if [ -z $input ]; then
+	read -s -p "Password: " input
+	echo
+	if [ -z "$input" ]; then
 		InputPassword
 	else
 		PASSWORD=$input
 	fi
 }
 
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
 
 # Make Container
 if [ ! "$(docker image ls -q ${NAME_IMAGE})" ]; then
@@ -143,7 +143,6 @@ DOCKER_OPT="${DOCKER_OPT} \
 	--shm-size=4096m \
 	-e SIZEW=${RESOLUTION_W} -e SIZEH=${RESOLUTION_H} -e REFRESH=60 -e DPI=96 -e CDEPTH=24 \
 	--tmpfs /dev/shm:rw \
-	-p 1$(id -u):8444 \
 	-p 2$(id -u):3389 \
 	-e PULSE_SERVER=unix:/run/pulse/native \
 	--hostname $(hostname)-Docker \
@@ -164,18 +163,18 @@ CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE}: | awk '{print $1}')
 # Run Container
 if [ ! "$CONTAINER_ID" ]; then
 	if [ ! $# -ne 1 ]; then
-		if [ "vnc" = $1 ]; then
+		if [ "novnc" = $1 ]; then
 			InputPassword
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-it \
-				-e PASSWD=${PASSWORD} \
+				-it -e PASSWD=${PASSWORD} \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
 				-v /home/$USER/.config/pulse/cookie:/tmp/pulse/cookie:ro \
 				-e SSL_ENABLE=${SSL_ENABLE} -e CERT_PATH="/home/$USER/host_home/ssl/" \
+				-p 1$(id -u):8080 \
 				--entrypoint "/usr/bin/supervisord" \
 				${NAME_IMAGE}:latest
 			CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE} | awk '{print $1}')
@@ -187,7 +186,7 @@ if [ ! "$CONTAINER_ID" ]; then
 			exit
 		fi
 	elif [ ! $# -ne 2 ]; then
-		if [ "vnc" = $1 ]; then
+		if [ "novnc" = $1 ]; then
 			PASSWORD=$2
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
@@ -198,6 +197,7 @@ if [ ! "$CONTAINER_ID" ]; then
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
 				-v /home/$USER/.config/pulse/cookie:/tmp/pulse/cookie:ro \
 				-e SSL_ENABLE=${SSL_ENABLE} -e CERT_PATH="/home/$USER/host_home/ssl/" \
+				-p 1$(id -u):8080 \
 				--entrypoint "/usr/bin/supervisord" \
 				${NAME_IMAGE}:latest
 			CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE} | awk '{print $1}')
@@ -209,7 +209,7 @@ if [ ! "$CONTAINER_ID" ]; then
 			exit
 		fi
 	elif [ ! $# -ne 3 ]; then
-		if [ "vnc" = $1 ]; then
+		if [ "novnc" = $1 ]; then
 			PASSWORD=$2
 			GPU_OPT=""
 			if [ ! "none" = $3 ]; then
@@ -224,6 +224,7 @@ if [ ! "$CONTAINER_ID" ]; then
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
 				-v /home/$USER/.config/pulse/cookie:/tmp/pulse/cookie:ro \
 				-e SSL_ENABLE=${SSL_ENABLE} -e CERT_PATH="/home/$USER/host_home/ssl/" \
+				-p 1$(id -u):8080 \
 				--entrypoint "/usr/bin/supervisord" \
 				${NAME_IMAGE}:latest
 			CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE} | awk '{print $1}')

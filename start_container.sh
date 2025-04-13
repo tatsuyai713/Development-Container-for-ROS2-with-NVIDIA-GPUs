@@ -30,16 +30,17 @@ echo "GPU OPTION is ${GPU_OPTION}"
 
 function InputPassword() {
 	echo "Please input User Password."
-	read input
-	if [ -z $input ] ; then
+	read -s -p "Password: " input
+	echo
+	if [ -z "$input" ]; then
 		InputPassword
 	else
-		PASSWORD=$input 
+		PASSWORD=$input
 	fi
 }
 
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd $SCRIPT_DIR
@@ -48,7 +49,7 @@ if [ "$(docker ps -al | grep ${DOCKER_NAME})" ]; then
 	echo "docker container already started...(GPU option is ignored.)"
 	CONTAINER_ID=$(docker ps -a | grep ${DOCKER_NAME} | awk '{print $1}')
 	
-	rm -rf /tmp/.docker.xauth
+	sudo rm -rf /tmp/.docker.xauth
 	XAUTH=/tmp/.docker.xauth
 	touch $XAUTH
 	xauth_list=$(xauth nlist :0 | sed -e 's/^..../ffff/')
@@ -60,14 +61,14 @@ if [ "$(docker ps -al | grep ${DOCKER_NAME})" ]; then
 	docker start $CONTAINER_ID
 	exit
 fi
-
+sudo pwd # check sudo
 InputPassword
-nohup ./launch_container.sh vnc ${PASSWORD} ${GPU_OPTION} > /tmp/nohup_${USER}.out 2>&1 &
+nohup ./launch_container.sh novnc ${PASSWORD} ${GPU_OPTION} > /tmp/nohup_${USER}.out 2>&1 &
 
 sleep 3
 echo ""
 echo "_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/"
-echo "_/   Please access 'https://localhost:1`id -u`'    _/"
-echo "_/     or 'https://<PC IP ADDRESS>:1`id -u`'       _/"
-echo "_/            RDP Port is 2`id -u`                 _/"
+echo "_/  Please access 'http(s)://localhost:1`id -u`'   _/"
+echo "_/    or 'http(s)://<PC IP ADDRESS>:1`id -u`'      _/"
+echo "_/        RDP Connection Port is 2`id -u`          _/"
 echo "_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/"

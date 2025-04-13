@@ -1,7 +1,7 @@
 #!/bin/bash
 
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
+NAME_IMAGE="devcontainer_22.04_nvidia_image_for_${USER}"
+DOCKER_NAME="devcontainer_22.04_nvidia_for_${USER}"
 
 echo "Build Container"
 
@@ -22,47 +22,7 @@ else
 	./launch_container.sh build JP
 fi
 
-
-NAME_IMAGE="devcontainer_nvidia_image_for_${USER}"
-DOCKER_NAME="devcontainer_nvidia_for_${USER}"
-
-DOCKER_OPT="${DOCKER_OPT} \
-	--env=QT_X11_NO_MITSHM=1 \
-    --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
-	--volume=/home/${USER}:/home/${USER}/host_home:rw \
-	--env=TERM=xterm-256color \
-	--privileged \
-	-u ${USER} \
-	--shm-size=4096m \
-	--tmpfs /dev/shm:rw \
-	--hostname $(hostname)-Docker \
-	--add-host $(hostname)-Docker:127.0.1.1"
-
-echo "Please setup VNC..."
-docker run ${DOCKER_OPT} \
-	--name=${DOCKER_NAME} \
-	-it --entrypoint "vncserver" \
-	${NAME_IMAGE}:latest
-
-CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE} | awk '{print $1}')
-
-docker commit ${DOCKER_NAME} ${NAME_IMAGE}:latest
-docker stop $CONTAINER_ID
-docker rm $CONTAINER_ID -f
-
-# echo "Please enter VNC Password..."
-# docker run ${DOCKER_OPT} \
-# 	--name=${DOCKER_NAME} \
-# 	-it --entrypoint "setup_vncpasswd.sh" \
-# 	${NAME_IMAGE}:latest
-
-# CONTAINER_ID=$(docker ps -a | grep ${NAME_IMAGE} | awk '{print $1}')
-
-# docker commit ${DOCKER_NAME} ${NAME_IMAGE}:latest
-# docker stop $CONTAINER_ID
-# docker rm $CONTAINER_ID -f
-
-nohup ./launch_container.sh vnc test none > /tmp/nohup_${USER}.out 2>&1 &
+nohup ./launch_container.sh novnc test none > /tmp/nohup_${USER}.out 2>&1 &
 
 echo "Please wait..."
 cd ../

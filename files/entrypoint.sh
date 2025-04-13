@@ -29,7 +29,7 @@ sudo /etc/init.d/dbus start
 # SSH start
 sudo service ssh start
 
-# Default display is :0 across the container
+# Default display is :10 across the container
 export DISPLAY=":10"
 sudo rm -rf /tmp/.X11-unix/X${DISPLAY/:/}
 
@@ -46,11 +46,14 @@ else
 fi
 
 if [ "${SSL_ENABLE,,}" = "true" ]; then
-  SSL="-sslOnly"
-  CERT="-cert $CERT_PATH/server.crt -key $CERT_PATH/server.key"
+  SSL="--ssl-only"
+  CERT="--cert $CERT_PATH/server.crt --key $CERT_PATH/server.key"
 fi
 
-vncserver -depth ${CDEPTH} -geometry ${SIZEW}x${SIZEH} -FrameRate=60 -websocketPort 8444 -RectThreads 1 $SSL $CERT &
+# Run the x11vnc + noVNC fallback web interface if enabled
+if [ -n "$NOVNC_VIEWPASS" ]; then export NOVNC_VIEWONLY="-viewpasswd ${NOVNC_VIEWPASS}"; else unset NOVNC_VIEWONLY; fi
+x11vnc -display "${DISPLAY}" -listen 0.0.0.0 -nopw -shared -forever -repeat -xkb -snapfb -threads -xrandr "resize" -rfbport 5900 ${NOVNC_VIEWONLY} &
+/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080 --heartbeat 10 $SSL $CERT &
 
 # Choose startplasma-x11 or startkde for KDE startup
 if [ -x "$(command -v startplasma-x11)" ]; then export KDE_START="startplasma-x11"; else export KDE_START="startkde"; fi
@@ -65,7 +68,6 @@ else
 fi
 
 dbus-launch fcitx &
-
 sudo service xrdp restart
 
 # Add custom processes right below this line, or within `supervisord.conf` to perform service management similar to systemd
