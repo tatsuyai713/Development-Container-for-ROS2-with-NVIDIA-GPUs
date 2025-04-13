@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VNC_PASSWORD="test"
+PASSWORD="test"
 
 if [ $# -ne 1 ]; then
 	echo "Please select GPU. (gpu0, gpu1,..., all or none(default))"
@@ -30,11 +30,12 @@ echo "GPU OPTION is ${GPU_OPTION}"
 
 function InputPassword() {
 	echo "Please input User Password."
-	read input
-	if [ -z $input ] ; then
+	read -s -p "Password: " input
+	echo
+	if [ -z "$input" ]; then
 		InputPassword
 	else
-		VNC_PASSWORD=$input 
+		PASSWORD=$input
 	fi
 }
 
@@ -62,7 +63,7 @@ if [ "$(docker ps -al | grep ${DOCKER_NAME})" ]; then
 fi
 sudo pwd # check sudo
 InputPassword
-nohup ./launch_container.sh novnc ${VNC_PASSWORD} ${GPU_OPTION} > /tmp/nohup_${USER}.out 2>&1 &
+nohup ./launch_container.sh novnc ${PASSWORD} ${GPU_OPTION} > /tmp/nohup_${USER}.out 2>&1 &
 
 sleep 3
 echo ""

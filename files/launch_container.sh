@@ -8,11 +8,12 @@ RESOLUTION_H="1080"
 
 function InputPassword() {
 	echo "Please input User Password."
-	read input
-	if [ -z $input ]; then
+	read -s -p "Password: " input
+	echo
+	if [ -z "$input" ]; then
 		InputPassword
 	else
-		VNC_PASSWORD=$input
+		PASSWORD=$input
 	fi
 }
 
@@ -167,7 +168,7 @@ if [ ! "$CONTAINER_ID" ]; then
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-it -e PASSWD=${VNC_PASSWORD} \
+				-it -e PASSWD=${PASSWORD} \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
@@ -186,11 +187,11 @@ if [ ! "$CONTAINER_ID" ]; then
 		fi
 	elif [ ! $# -ne 2 ]; then
 		if [ "novnc" = $1 ]; then
-			VNC_PASSWORD=$2
+			PASSWORD=$2
 			DOCKER_OPT="${DOCKER_OPT} --gpus all "
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-e PASSWD=${VNC_PASSWORD} \
+				-e PASSWD=${PASSWORD} \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \
 				-v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
@@ -209,14 +210,14 @@ if [ ! "$CONTAINER_ID" ]; then
 		fi
 	elif [ ! $# -ne 3 ]; then
 		if [ "novnc" = $1 ]; then
-			VNC_PASSWORD=$2
+			PASSWORD=$2
 			GPU_OPT=""
 			if [ ! "none" = $3 ]; then
 				GPU_OPT="--gpus $3"
 			fi
 			docker run ${DOCKER_OPT} \
 				--name=${DOCKER_NAME} \
-				-e PASSWD=${VNC_PASSWORD} \
+				-e PASSWD=${PASSWORD} \
 				$GPU_OPT \
 				-e PULSE_COOKIE=/tmp/pulse/cookie \
 				-e PULSE_SERVER=unix:/tmp/pulse/native \

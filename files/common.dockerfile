@@ -482,6 +482,9 @@ RUN echo '#!/bin/sh' > /etc/xrdp/startwm.sh && \
     echo '/usr/sbin/xrdp-chansrv &' >> /etc/xrdp/startwm.sh && \
     chmod +x /etc/xrdp/startwm.sh
 
+RUN sed -i '/<head>/a <script>if (window.location.search === "" || window.location.search === "?") { window.location.replace(window.location.pathname + "?autoconnect=1&resize=scale"); }</script>' /opt/noVNC/vnc.html
+
+
 # Copy scripts and configurations used to start the container
 COPY entrypoint.sh /etc/entrypoint.sh
 RUN chmod 755 /etc/entrypoint.sh
