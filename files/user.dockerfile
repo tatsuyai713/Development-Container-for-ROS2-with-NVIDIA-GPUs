@@ -30,6 +30,13 @@ RUN useradd -u $UID -m $USERNAME && \
 
 RUN ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone
 
+# Temporary Fix for ROS 2
+RUN rm -rf /etc/apt/sources.list.d/ros2.list
+RUN apt update && sudo apt install curl -y
+RUN export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+RUN curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" # If using Ubuntu derivates use $UBUNTU_CODENAME
+RUN dpkg -i /tmp/ros2-apt-source.deb
+
 RUN if [ "${IN_LOCALE}" = "JP" ]; then \
     apt-get update &&\
     DEBIAN_FRONTEND=noninteractive apt-get install  -y \
