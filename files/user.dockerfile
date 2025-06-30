@@ -40,7 +40,7 @@ RUN ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezo
 # Temporary Fix for ROS 2
 RUN rm -rf /etc/apt/sources.list.d/ros2.list
 RUN apt update && sudo apt install curl -y
-RUN curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/1.1.0/ros2-apt-source_1.1.0.noble_all.de"
+RUN curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/1.1.0/ros2-apt-source_1.1.0.noble_all.deb"
 RUN dpkg -i /tmp/ros2-apt-source.deb
 
 RUN if [ "${IN_LOCALE}" = "JP" ]; then \
